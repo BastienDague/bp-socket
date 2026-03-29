@@ -1,6 +1,5 @@
 #include "ion.h"
 #include "../include/bp_socket.h"
-#include "bp_genl.h"
 #include "endpoint_registry.h"
 #include "log.h"
 #include "sdr.h"
@@ -374,9 +373,7 @@ void *ion_receive_thread(void *arg) {
             continue;
         }
 
-        err = bp_genl_enqueue_bundle(args->netlink_family, args->netlink_sock, args->netlink_mutex,
-                                     payload, payload_size, src_node_id, src_service_id,
-                                     dest_node_id, dest_service_id, dlv.adu);
+        err = unix_ipc_send_bundle(payload, payload_size, src_node_id, src_service_id, dest_node_id, dest_service_id, dlv.adu);
         if (err < 0) {
             log_error("[ipn:%u.%u] bp_genl_enqueue_bundle: failed with error %d", dest_node_id,
                       dest_service_id, err);

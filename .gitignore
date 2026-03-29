@@ -65,3 +65,7 @@ tests/receiver
 daemon/bp_daemon
 daemon/.*
 !daemon/.clang-format
+
+#Fichier test du preload
+test
+test.c

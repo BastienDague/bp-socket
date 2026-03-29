@@ -7,6 +7,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider :libvirt do |libvirt|
     libvirt.driver = "kvm"
     libvirt.uri = "qemu:///system"
+    libvirt.cpu_mode = "host-passthrough" #A retirer avant de PR ou quoi c'est pour les tests sur nos machines
   end
 
   config.vm.define "ion" do |ion|
