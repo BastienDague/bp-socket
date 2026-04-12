@@ -15,14 +15,21 @@
 static int client_fds[MAX_CLIENTS];
 static int client_count = 0;
 
+struct client_ctx {
+    struct event *ev;
+};
+
 static void on_hook_message(evutil_socket_t fd, short what, void *arg) {
     (void)what;
-    (void)arg;
+    struct client_ctx *ctx = arg;
     bp_ipc_msg_t msg;
     bp_ipc_response_t resp;
 
     if (read(fd, &msg, sizeof(msg)) <= 0) {
         log_error("unix_ipc: client disconnected fd=%d", fd);
+        event_del(ctx->ev);
+        event_free(ctx->ev);
+        free(ctx);
         close(fd);
         return;
     }
@@ -82,7 +89,8 @@ static void on_hook_message(evutil_socket_t fd, short what, void *arg) {
     write(fd, &resp, sizeof(resp));
 }
 
-static void on_hook_connect(evutil_socket_t fd, short what, void *arg) {
+static void on_hook_connect(evutil_socket_t fd, short what, void *arg)
+{
     (void)what;
     Daemon *daemon = arg;
 
@@ -92,15 +100,17 @@ static void on_hook_connect(evutil_socket_t fd, short what, void *arg) {
         return;
     }
 
-    if (client_count < MAX_CLIENTS) client_fds[client_count++] = client_fd;
+    if (client_count < MAX_CLIENTS)
+        client_fds[client_count++] = client_fd;
 
     log_info("unix_ipc: client connected fd=%d", client_fd);
 
-    struct event *ev =
-        event_new(daemon->base, client_fd, EV_READ | EV_PERSIST, on_hook_message, daemon);
-    event_add(ev, NULL);
+    struct client_ctx *ctx = malloc(sizeof(struct client_ctx));
+    ctx->ev = event_new(daemon->base, client_fd,
+                        EV_READ | EV_PERSIST,
+                        on_hook_message, ctx);
+    event_add(ctx->ev, NULL);
 }
-
 int unix_ipc_init(Daemon *daemon) {
     struct sockaddr_un addr;
 
