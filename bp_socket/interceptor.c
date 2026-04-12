@@ -79,6 +79,30 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     return -1;
 }
 
+int close(int fd)
+{
+    if (!is_bp_fd(fd))
+        return real_close(fd);
+
+    bp_fd_entry_t *entry = fd_table_get(fd);
+
+    bp_ipc_msg_t msg = {
+        .cmd            = BP_IPC_CLOSE_ENDPOINT,
+        .src_node_id    = entry->node_id,
+        .src_service_id = entry->service_id,
+        .payload_len    = 0,
+    };
+    write(entry->unix_fd, &msg, sizeof(msg));
+
+    bp_ipc_response_t resp;
+    read(entry->unix_fd, &resp, sizeof(resp));
+
+    fd_table_remove(fd);
+    real_close(fd);
+
+    return 0;
+}
+
 ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
     const struct sockaddr* dest_addr, socklen_t addrlen)
 {
