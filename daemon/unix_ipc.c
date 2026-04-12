@@ -31,10 +31,13 @@ static void on_hook_message(evutil_socket_t fd, short what, void *arg) {
 
     case BP_IPC_OPEN_ENDPOINT:
         log_info("unix_ipc: OPEN_ENDPOINT ipn:%u.%u", msg.src_node_id, msg.src_service_id);
-        if (ion_open_endpoint(msg.src_node_id, msg.src_service_id) == 0)
-            resp.status = BP_IPC_OK;
-        else
-            resp.status = BP_IPC_ERR;
+        if (endpoint_registry_exists(msg.src_node_id, msg.src_service_id)) {
+        resp.status = BP_IPC_OK;
+        } else if (ion_open_endpoint(msg.src_node_id, msg.src_service_id) == 0) {
+        resp.status = BP_IPC_OK;
+        } else {
+        resp.status = BP_IPC_ERR;
+        }
         break;
 
     case BP_IPC_CLOSE_ENDPOINT:
